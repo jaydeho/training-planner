@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>教練課表產生器｜線上版</title>
+<style>
+  :root{--ind:#4f46e5;--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#64748b;--bd:#e2e8f0;--ok:#16a34a;--warn:#ea580c}
+  *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto}
+  .wrap{max-width:1200px;margin:0 auto;padding:24px}
+  .row{display:grid;gap:24px}
+  .row.cols-5{grid-template-columns:1fr}
+  @media(min-width:900px){.row.cols-5{grid-template-columns:2fr 3fr}}
+  .card{background:var(--card);border:1px solid var(--bd);border-radius:16px;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+  .p-16{padding:16px}.p-8{padding:8px}.mb-8{margin-bottom:8px}.mb-16{margin-bottom:16px}.mb-24{margin-bottom:24px}
+  .btn{background:var(--ind);color:#fff;border:0;border-radius:999px;padding:8px 12px;font-weight:600;cursor:pointer}
+  .btn:hover{filter:brightness(.95)}
+  .btn.ghost{background:#0f172a;color:#fff}
+  .btn.sm{padding:6px 10px;font-weight:500}
+  .btn.muted{background:#e2e8f0;color:#111827}
+  .btn.link{background:transparent;color:var(--muted);border:1px solid var(--bd)}
+  .btn.gray{background:#fff;color:#334155;border:1px solid var(--bd)}
+  .btn.ok{background:var(--ok);color:#fff}
+  .btn.warn{background:var(--warn);color:#fff}
+  .pill{border:1px solid var(--bd);border-radius:999px;padding:6px 10px;background:#fff;color:#334155;cursor:pointer}
+  .pill.active{background:var(--ind);color:#fff;border-color:var(--ind)}
+  .grid{display:grid;gap:8px}
+  .grid.lib{grid-template-columns:repeat(2,minmax(0,1fr));max-height:320px;overflow:auto}
+  @media(min-width:900px){.grid.lib{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  .ex-btn{border:1px solid var(--bd);border-radius:12px;background:#fff;text-align:left;padding:8px;cursor:pointer}
+  .ex-btn:hover{border-color:#93c5fd;background:#f1f5f9}
+  .ex-btn.active{background:#ecfdf5;border-color:#34d399;color:#065f46}
+  .input,.select,textarea{width:100%;border:1px solid var(--bd);border-radius:12px;padding:8px}
+  .muted{color:var(--muted)}
+  .title{font-weight:700;font-size:20px}
+  .table-head-slim{display:grid;grid-template-columns:1.6fr 1.6fr auto;gap:8px;background:#f1f5f9;border:1px solid var(--bd);border-radius:12px;padding:8px;font-weight:600;color:#334155}
+  .row-slim{display:grid;grid-template-columns:1.6fr 1.6fr auto;gap:8px;border:1px solid var(--bd);border-radius:12px;padding:8px;align-items:center;background:#fff}
+  .drag{display:inline-flex;align-items:center;gap:6px;color:#64748b;cursor:grab}
+  .block{border:1px solid var(--bd);border-radius:14px;margin-bottom:16px}
+  .block-h{display:flex;justify-content:space-between;align-items:center;background:#f8fafc;border-bottom:1px solid var(--bd);padding:8px 12px;font-weight:600;cursor:grab}
+  .hint{font-size:12px;color:#64748b}
+  .tabs{display:flex;flex-wrap:wrap;gap:8px}
+  .flex{display:flex;gap:8px;align-items:center}
+  .right{justify-content:flex-end}
+  .space-between{justify-content:space-between}
+  .center{text-align:center}
+
+  /* Modal */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+  .modal{background:#fff;border-radius:16px;border:1px solid var(--bd);max-width:1024px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  .modal-h{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--bd)}
+  .modal-b{padding:16px}
+  .table-head-sm{display:grid;grid-template-columns:1.2fr 1fr .8fr 1fr 1fr .8fr auto;gap:8px;background:#f1f5f9;border:1px solid var(--bd);border-radius:12px;padding:8px;font-weight:600;color:#334155}
+  .row-sm{display:grid;grid-template-columns:1.2fr 1fr .8fr 1fr 1fr .8fr auto;gap:8px;border:1px solid var(--bd);border-radius:12px;padding:8px;align-items:center;background:#fff}
+
+  .tiny{font-size:12px;color:#64748b}
+  .hr{height:1px;background:var(--bd);margin:12px 0}
+  .note{font-size:12px;color:#64748b;margin-top:4px}
+  .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:999px;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.2);z-index:60;opacity:0;transition:opacity .2s}
+  .toast.show{opacity:1}
+</style>
+<!-- 外掛（CDN）：拖曳、PDF、截圖、Word -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="space-between flex mb-16">
+      <div>
+        <div class="title">教練課表產生器（線上版）</div>
+        <div class="hint">支援動作庫 CSV 匯入/匯出、區塊拖曳排序、快速模板與自訂模板，以及 PDF / Word / 純文字匯出等功能，協助教練快速產生與分享訓練課表。</div>
+      </div>
+      <div class="flex">
+        <button id="btnShare" class="btn muted">分享連結</button>
+        <button id="btnPDF" class="btn">匯出 PDF</button>
+        <button id="btnDOCX" class="btn ghost">匯出 Word</button>
+        <button id="btnTXT" class="btn gray">複製純文字</button>
+      </div>
+    </div>
+
+    <div class="grid" style="grid-template-columns:repeat(3,1fr)">
+      <input id="programTitle" class="input" placeholder="課表標題（例：第1週｜下半身力量）" />
+      <input id="clientName" class="input" placeholder="學員姓名" />
+      <input id="programDate" type="date" class="input" />
+    </div>
+
+    <div class="row cols-5 mb-24">
+      <!-- 左：動作庫 + 模板工具 -->
+      <div class="card p-16">
+        <div class="flex" style="flex-wrap:wrap;gap:8px">
+          <div style="position:relative;flex:1;min-width:240px">
+            <input id="search" class="input" placeholder="搜尋動作…" />
+          </div>
+          <button id="btnQuickAdd" class="btn">+ 新增動作</button>
+          <button id="btnLibIO" class="btn muted">匯入/匯出動作庫（CSV）</button>
+          <button id="btnManageLib" class="btn gray">管理動作庫</button>
+        </div>
+        <div class="tabs mb-8" id="catTabs"></div>
+        <div class="grid lib" id="libGrid"></div>
+
+        <div class="hr"></div>
+        <div class="grid" style="grid-template-columns:1fr;gap:8px">
+          <div class="flex" style="flex-wrap:wrap;gap:8px;align-items:center">
+            <strong>區塊快速模板</strong>
+            <button id="btnSaveBlockTmpl" class="btn sm">將目前區塊儲存為模板</button>
+            <button id="btnManageBlockTmpl" class="btn sm muted">管理/拖曳排序</button>
+            <select id="blockTmplList" class="select" style="min-width:220px" title="雙擊可直接載入"></select>
+            <button id="btnLoadBlockTmpl" class="btn sm">載入到新區塊</button>
+            <button id="btnDeleteBlockTmpl" class="btn sm link">刪除</button>
+          </div>
+          <div class="flex" style="flex-wrap:wrap;gap:8px;align-items:center">
+            <strong>自訂課表模板</strong>
+            <button id="btnSavePlanTmpl" class="btn sm">儲存整份課表</button>
+            <select id="planTmplList" class="select" style="min-width:220px"></select>
+            <button id="btnLoadPlanTmpl" class="btn sm">匯入模板</button>
+            <button id="btnDeletePlanTmpl" class="btn sm link">刪除</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右：課表 -->
+      <div class="card p-16">
+        <div id="printArea">
+          <div class="grid" style="grid-template-columns:repeat(3,1fr);gap:12px" class="mb-16">
+            <div><div class="hint">課表標題</div><div id="viewTitle" style="font-weight:700">訓練課表</div></div>
+            <div><div class="hint">學員</div><div id="viewClient"></div></div>
+            <div><div class="hint">日期</div><div id="viewDate"></div></div>
+          </div>
+
+          <div class="tabs mb-8" id="blockTabs"></div>
+          <div class="right mb-8 flex">
+            <button id="addBlock" class="btn sm">+ 新增區塊</button>
+          </div>
+          <div id="blocks"></div>
+
+          <div class="mb-8">
+            <div class="hint">備註</div>
+            <textarea id="globalNotes" rows="3" class="input" placeholder="注意事項、技術要點、節奏（Tempo）等"></textarea>
+          </div>
+        </div>
+        <div class="hint">提示：匯出會隱藏為 0 的欄位與組數。區塊可整體拖曳調整順序（拖曳區塊標題「☰」）。</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">已複製到剪貼簿，現在可到其他程式貼上</div>
+
+<script>
+(function(){
+  // ===== Share via URL (encode current plan into URL hash) =====
+  function getPlanSnapshot(){
+    return {
+      programTitle: ($('#programTitle').value||''),
+      clientName: ($('#clientName').value||''),
+      programDate: ($('#programDate').value||''),
+      notes: ($('#globalNotes').value||''),
+      blocks: blocks.map(b => ({
+        name: b.name,
+        defaultSets: b.defaultSets,
+        items: b.items.map(it => ({
+          name: it.name,
+          intensity: it.intensity,
+          volume: it.volume,
+          sets: it.sets,
+          notes: it.notes||''
+        }))
+      }))
+    };
+  }
+  function applyPlanSnapshot(t){
+    if(!t) return;
+    $('#programTitle').value = t.programTitle||'';
+    $('#clientName').value  = t.clientName||'';
+    $('#programDate').value = t.programDate||new Date().toISOString().slice(0,10);
+    $('#globalNotes').value = t.notes||'';
+    blocks = (t.blocks||[]).map(src=>({ id:uid(), name:src.name, defaultSets:src.defaultSets, items:(src.items||[]).map(it=>({ uid:uid(), name:it.name, intensity:{...it.intensity}, volume:{...it.volume}, sets:it.sets, notes:it.notes||'' })) }));
+    if(blocks.length===0){ blocks=[{ id:uid(), name:'Block A', items:[], defaultSets:3 }]; }
+    activeBlockId = blocks[0].id;
+    renderMeta(); renderBlocks();
+  }
+  function toURLSafe(s){
+    return btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  }
+  function fromURLSafe(s){
+    s = s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4) s+='=';
+    return decodeURIComponent(escape(atob(s)));
+  }
+  function copyShareLink(){
+    const snap = getPlanSnapshot();
+    const json = JSON.stringify(snap);
+    const enc  = toURLSafe(json);
+    const url  = location.origin + location.pathname + '#plan=' + enc;
+    if(navigator.clipboard && window.isSecureContext){
+      navigator.clipboard.writeText(url).then(()=> toast('分享連結已複製！')).catch(()=> fallbackCopy(url));
+    }else{
+      fallbackCopy(url);
+    }
+  }
+
+  const LIB_KEY = 'coach_exercise_library_v4_csv';
+  const BLOCK_TMPL_KEY = 'coach_block_templates_v1';
+  const PLAN_TMPL_KEY  = 'coach_plan_templates_v3'; // 無 unitPref 依賴
+
+  const DEFAULT_LIBRARY = [
+    { id:'sq', name:'Back Squat', category:'Strength', intensity:{ type:'weight', value:60, unit:'kg' }, volume:{ type:'reps', value:5 }, defaultSets:5 },
+    { id:'plank', name:'Plank', category:'Core', intensity:{ type:'time', value:30, unit:'sec' }, volume:{ type:'time', value:30 }, defaultSets:3 },
+    { id:'run', name:'Run', category:'Conditioning', intensity:{ type:'distance', value:1000, unit:'m' }, volume:{ type:'time', value:300 }, defaultSets:1 },
+  ];
+
+  const $ = (s, r=document) => r.querySelector(s);
+  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+  const uid = () => Math.random().toString(36).slice(2,9);
+
+  function toast(msg){
+    const t = $('#toast'); t.textContent = msg || '已複製到剪貼簿，現在可到其他程式貼上';
+    t.classList.add('show'); setTimeout(()=> t.classList.remove('show'), 1800);
+  }
+
+  // ===== Persistence helpers =====
+  function loadJSON(key, fallback){ try{ const raw=localStorage.getItem(key); if(!raw) return fallback; const v=JSON.parse(raw); return v==null?fallback:v; }catch(e){return fallback;} }
+  function saveJSON(key, v){ localStorage.setItem(key, JSON.stringify(v)); }
+
+  function loadLibrary(){
+    const arr = loadJSON(LIB_KEY, null);
+    if(Array.isArray(arr) && arr.length) return arr;
+    return DEFAULT_LIBRARY.map(e=>({...e}));
+  }
+  function saveLibrary(next){ saveJSON(LIB_KEY, next); }
+
+  let library = loadLibrary();
+
+  // ===== State =====
+  let blocks = [{ id: uid(), name: 'Block A', items: [], defaultSets: 3 }];
+  let activeBlockId = blocks[0].id;
+  let catFilter = null;
+
+  // Meta
+  const programTitle = $('#programTitle');
+  const clientName = $('#clientName');
+  const programDate = $('#programDate');
+  $('#programDate').value = new Date().toISOString().slice(0,10);
+
+  function getCurrentBlock(){ return blocks.find(b=>b.id===activeBlockId) || blocks[0]; }
+  function renderMeta(){
+    $('#viewTitle').textContent = programTitle.value || '訓練課表';
+    $('#viewClient').textContent = clientName.value || '';
+    $('#viewDate').textContent = programDate.value || '';
+  }
+  [programTitle, clientName, programDate].forEach(el=>el.addEventListener('input', renderMeta));
+  renderMeta();
+
+  // ===== Categories =====
+  function getCategories(){ return Array.from(new Set(library.map(e=>e.category).filter(Boolean))).sort(); }
+
+  // ===== Library UI (names only) =====
+  function renderLibrary(){
+    const tabs = $('#catTabs'); tabs.innerHTML = '';
+    const btnAll = document.createElement('button');
+    btnAll.className = 'pill' + (catFilter? '':' active');
+    btnAll.textContent = '全部';
+    btnAll.onclick = ()=>{catFilter=null; renderLibrary();};
+    tabs.appendChild(btnAll);
+    getCategories().forEach(cat=>{
+      const b=document.createElement('button');
+      b.className='pill' + (catFilter===cat?' active':''); b.textContent=cat;
+      b.onclick=()=>{catFilter=cat; renderLibrary();};
+      tabs.appendChild(b);
+    });
+
+    const grid = $('#libGrid'); grid.innerHTML='';
+    const q = ($('#search').value||'').trim().toLowerCase();
+    library
+      .filter(e => (!catFilter || e.category===catFilter) && e.name.toLowerCase().includes(q))
+      .forEach(ex=>{
+        const btn=document.createElement('button');
+        btn.className='ex-btn' + (getCurrentBlock().items.some(i=>i.exerciseId===ex.id)?' active':'');
+        btn.textContent = ex.name;
+        btn.title = '點擊加入目前區塊；右鍵編輯此動作';
+        btn.onclick=()=> addExerciseToCurrent(ex);
+        btn.oncontextmenu = (e)=>{ e.preventDefault(); openQuickAddExercise(ex); };
+        grid.appendChild(btn);
+      });
+  }
+  $('#search').addEventListener('input', renderLibrary);
+
+  // ===== Quick Add / Edit Exercise =====
+  function openQuickAddExercise(prefill){
+    const existingCats = getCategories();
+    const data = prefill || {
+      name:'', category: existingCats[0] || 'Strength',
+      intensity:{ type:'', value:'', unit:'' }, // 可留白
+      volume:{ type:'reps', value:0 },
+      defaultSets:3
+    };
+    const overlay=document.createElement('div'); overlay.className='overlay';
+    const modal=document.createElement('div'); modal.className='modal';
+    modal.innerHTML=`
+      <div class="modal-h">
+        <div style="font-weight:700">${prefill?'編輯動作':'新增動作'}</div>
+        <div class="flex">
+          ${prefill?'<button id="delEx" class="btn link">刪除</button>':''}
+          <button id="saveEx" class="btn ok">${prefill?'儲存變更':'新增'}</button>
+          <button id="cancelEx" class="btn gray">取消</button>
+        </div>
+      </div>
+      <div class="modal-b">
+        <div class="grid" style="grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <div class="tiny">名稱</div>
+            <input id="exName" class="input" value="${data.name||''}" placeholder="如：Back Squat">
+          </div>
+          <div>
+            <div class="tiny">分類（選既有或自行輸入）</div>
+            <div class="flex" style="gap:8px">
+              <select id="exCatSel" class="select" style="flex:1">
+                <option value="">（選擇既有分類）</option>
+                ${existingCats.map(c=>`<option>${c}</option>`).join('')}
+              </select>
+              <input id="exCat" class="input" placeholder="或輸入新分類" style="flex:1" value="${data.category||''}">
+            </div>
+          </div>
+        </div>
+
+        <details open style="margin-top:12px">
+          <summary><strong>訓練強度</strong>（可留白）</summary>
+          <div class="grid" style="grid-template-columns:1fr 1fr 1fr 1fr">
+            <select id="intType" class="select">
+              <option value="">（不設定）</option>
+              <option value="weight">重量</option>
+              <option value="time">時間</option>
+              <option value="distance">距離</option>
+              <option value="rm">RM</option>
+            </select>
+            <input id="intVal" type="number" class="input" placeholder="數值（可空白，不為負）" min="0" value="${data.intensity?.value ?? ''}">
+            <select id="intUnit" class="select">
+              <option value="">（無單位）</option>
+              <option>kg</option><option>lb</option><option>sec</option><option>min</option><option>m</option><option>km</option><option>rm</option>
+            </select>
+            <div class="tiny">例如：重量 60 kg、時間 30 sec、距離 1000 m、RM 5 rm</div>
+          </div>
+        </details>
+
+        <details style="margin-top:12px" open>
+          <summary><strong>訓練量</strong>（次數 / 時間）</summary>
+          <div class="grid" style="grid-template-columns:1fr 1fr 2fr">
+            <select id="volType" class="select">
+              <option value="reps">次數</option>
+              <option value="time">時間</option>
+            </select>
+            <input id="volVal" type="number" class="input" placeholder="數值（可 0）" min="0" value="${data.volume?.value ?? 0}">
+            <div class="tiny">例：10 rep 或 30秒</div>
+          </div>
+        </details>
+
+        <div style="margin-top:12px">
+          <div class="tiny">組數</div>
+          <input id="exSets" type="number" class="input" min="0" value="${data.defaultSets ?? 3}">
+        </div>
+      </div>
+    `;
+    overlay.appendChild(modal); document.body.appendChild(overlay);
+
+    // init selects
+    modal.querySelector('#exCatSel').value = existingCats.includes(data.category)? data.category : '';
+    modal.querySelector('#intType').value = data.intensity?.type || '';
+    modal.querySelector('#intUnit').value = data.intensity?.unit || '';
+    modal.querySelector('#volType').value = data.volume?.type || 'reps';
+
+    modal.querySelector('#exCatSel').onchange = ()=>{
+      const v = modal.querySelector('#exCatSel').value;
+      if(v) modal.querySelector('#exCat').value = v;
+    };
+
+    function readForm(){
+      const name = modal.querySelector('#exName').value.trim();
+      let category = (modal.querySelector('#exCat').value || '').trim();
+      if(!category) category = (modal.querySelector('#exCatSel').value || '').trim() || 'Strength';
+      const itype = modal.querySelector('#intType').value;
+      let ival = modal.querySelector('#intVal').value;
+      let iunit = modal.querySelector('#intUnit').value;
+      let volType = modal.querySelector('#volType').value;
+      let volVal = Number(modal.querySelector('#volVal').value||0); if(volVal<0) volVal=0;
+      let sets = Number(modal.querySelector('#exSets').value||0); if(sets<0) sets=0;
+      const intensity = itype ? { type: itype, value: (ival===''? '' : Math.max(0, Number(ival))), unit: iunit } : { type:'', value:'', unit:'' };
+      return { name, category, intensity, volume:{ type:volType, value:volVal }, defaultSets: sets };
+    }
+
+    modal.querySelector('#saveEx').onclick = ()=>{
+      const v = readForm();
+      if(!v.name){ alert('請輸入名稱'); return; }
+      if(prefill?.id){ library = library.map(e=> e.id===prefill.id ? ({...e, ...v, id:prefill.id}) : e); }
+      else{ library.push({ id:uid(), ...v }); }
+      saveLibrary(library); renderLibrary(); document.body.removeChild(overlay);
+    };
+    modal.querySelector('#cancelEx').onclick = ()=> document.body.removeChild(overlay);
+    if(prefill?.id){
+      modal.querySelector('#delEx').onclick = ()=>{
+        if(!confirm('確定要刪除此動作？')) return;
+        library = library.filter(e=>e.id!==prefill.id);
+        saveLibrary(library); renderLibrary(); document.body.removeChild(overlay);
+      };
+    }
+  }
+  $('#btnQuickAdd').onclick = ()=> openQuickAddExercise();
+
+  // ===== Blocks =====
+  function addBlock(){
+    const id=uid();
+    blocks.push({ id, name: `Block ${String.fromCharCode(65+blocks.length)}`, items: [], defaultSets:3 });
+    activeBlockId=id; renderBlocks();
+  }
+  function renameBlock(blockId){
+    const b=blocks.find(x=>x.id===blockId); if(!b) return;
+    const name=prompt('重新命名區塊', b.name)||b.name; b.name=name; renderBlocks();
+  }
+  function deleteBlock(blockId){
+    blocks = blocks.filter(b=>b.id!==blockId);
+    if(!blocks.length){ blocks=[{id:uid(), name:'Block A', items:[], defaultSets:3}]; }
+    activeBlockId=blocks[0].id; renderBlocks();
+  }
+  function duplicateBlock(blockId){
+    const idx = blocks.findIndex(b=>b.id===blockId); if(idx<0) return;
+    const src = blocks[idx];
+    const copy = { id:uid(), name: src.name+' Copy', defaultSets: src.defaultSets, items: src.items.map(it=>({...it, uid:uid()})) };
+    blocks.splice(idx+1,0,copy); activeBlockId=copy.id; renderBlocks();
+  }
+  function getBlockDefaultSets(b){ return typeof b.defaultSets==='number' ? b.defaultSets : 3; }
+
+  function renderBlockTabs(){
+    const tabs=$('#blockTabs'); tabs.innerHTML='';
+    blocks.forEach(b=>{
+      const pill=document.createElement('div');
+      pill.className='pill'+(b.id===activeBlockId?' active':'');
+      pill.style.display='inline-flex'; pill.style.gap='6px'; pill.style.alignItems='center';
+      const btn=document.createElement('button'); btn.textContent=b.name; btn.className='pill'+(b.id===activeBlockId?' active':'');
+      btn.onclick=()=>{activeBlockId=b.id; renderBlocks();};
+      const edit=document.createElement('button'); edit.textContent='✎'; edit.className='pill'; edit.onclick=()=>renameBlock(b.id);
+      const dup=document.createElement('button'); dup.textContent='複製'; dup.className='pill'; dup.onclick=()=>duplicateBlock(b.id);
+      const del=document.createElement('button'); del.textContent='刪除'; del.className='pill'; del.onclick=()=>deleteBlock(b.id);
+      pill.append(btn, edit, dup, del);
+      tabs.appendChild(pill);
+    });
+  }
+
+  // 加入動作：直接帶入「確定值」
+  function addExerciseToCurrent(ex){
+    const b=getCurrentBlock();
+    const item={
+      uid: uid(), exerciseId: ex.id, name: ex.name,
+      intensity: ex.intensity ? { ...ex.intensity } : { type:'', value:'', unit:'' },
+      volume: ex.volume ? { ...ex.volume } : { type:'reps', value:0 },
+      sets: typeof ex.defaultSets==='number' ? ex.defaultSets : getBlockDefaultSets(b),
+      notes:''
+    };
+    if(item.intensity && item.intensity.value!=='' && item.intensity.value<0) item.intensity.value = 0;
+    if(item.volume && item.volume.value<0) item.volume.value=0;
+    if(item.sets<0) item.sets=0;
+    b.items.push(item);
+    renderBlocks(); renderLibrary();
+  }
+
+  function updateItem(blockId, uidKey, patch){
+    const b=blocks.find(x=>x.id===blockId); if(!b) return;
+    const it=b.items.find(i=>i.uid===uidKey); if(!it) return;
+    Object.assign(it, patch);
+  }
+  function removeItem(blockId, uidKey){
+    const b=blocks.find(x=>x.id===blockId); if(!b) return;
+    b.items = b.items.filter(i=>i.uid!==uidKey);
+    renderBlocks(); renderLibrary();
+  }
+
+  function renderBlocks(){
+    renderBlockTabs();
+    const mount = $('#blocks');
+    mount.innerHTML='';
+    blocks.forEach(b=>{
+      const wrap=document.createElement('div'); wrap.className='block'; wrap.dataset.blockId=b.id;
+      const header=document.createElement('div'); header.className='block-h';
+      header.innerHTML=`<div>☰ ${b.name}</div>`;
+      const right=document.createElement('div'); right.className='flex';
+      const setsLabel=document.createElement('span'); setsLabel.className='tiny'; setsLabel.textContent='預設組數';
+      const setsInput=document.createElement('input'); setsInput.className='input'; setsInput.type='number'; setsInput.min='0'; setsInput.style.width='90px'; setsInput.value = getBlockDefaultSets(b);
+      setsInput.oninput = ()=>{ const v=Math.max(0, Number(setsInput.value||0)); b.defaultSets = v; };
+      const renameBtn=document.createElement('button'); renameBtn.className='btn sm muted'; renameBtn.textContent='重新命名'; renameBtn.onclick=()=>renameBlock(b.id);
+      right.append(setsLabel, setsInput, renameBtn);
+      header.appendChild(right);
+      wrap.appendChild(header);
+
+      const body=document.createElement('div'); body.className='p-8';
+      const head=document.createElement('div'); head.className='table-head-slim';
+      head.innerHTML='<div>動作（名稱）</div><div>強度 / 訓練量</div><div class="center">操作</div>';
+      body.appendChild(head);
+
+      const list=document.createElement('div'); list.className='grid'; list.id='list-'+b.id;
+
+      if(!b.items.length){
+        const empty=document.createElement('div'); empty.className='p-16'; empty.style.border='1px dashed var(--bd)'; empty.style.borderRadius='12px'; empty.style.textAlign='center'; empty.textContent='從左側動作庫點擊加入此區塊（右鍵動作可編輯/刪除）';
+        body.appendChild(empty);
+      }
+
+      b.items.forEach(it=>{
+        const row=document.createElement('div'); row.className='row-slim'; row.dataset.uid=it.uid;
+        const nameDiv = document.createElement('div'); nameDiv.className='drag'; nameDiv.textContent = it.name || '';
+
+        const showDiv = document.createElement('div');
+        showDiv.innerHTML = `<div>${formatForDisplay(it)}</div>` + (it.notes ? `<div class="note">備註：${escapeHTML(it.notes)}</div>` : '');
+
+        const ops = document.createElement('div'); ops.className='right';
+        const btnEdit = document.createElement('button'); btnEdit.className='btn sm muted'; btnEdit.textContent='編輯';
+        const btnNote = document.createElement('button'); btnNote.className='btn sm muted'; btnNote.textContent='備註';
+        const btnDel  = document.createElement('button'); btnDel.className='btn sm link'; btnDel.textContent='刪除';
+        btnEdit.onclick = ()=> openItemEditor(b.id, it.uid);
+        btnNote.onclick = ()=>{
+          const nv = prompt('輸入此動作的備註（留空則清除）', it.notes || '');
+          updateItem(b.id, it.uid, { notes: (nv||'').trim() });
+          renderBlocks();
+        };
+        btnDel.onclick  = ()=> removeItem(b.id, it.uid);
+        ops.append(btnEdit, btnNote, btnDel);
+
+        row.append(nameDiv, showDiv, ops);
+        list.appendChild(row);
+      });
+
+      body.appendChild(list); wrap.appendChild(body); mount.appendChild(wrap);
+
+      // 動作拖曳（區塊內）
+      new Sortable(list, { group:'plan', animation:150, handle:'.drag', ghostClass:'ghost',
+        onEnd: (evt)=>{
+          const fromId=b.id; const toList=evt.to; const toId=toList.id.replace('list-','');
+          const fromIdx=evt.oldIndex; const toIdx=evt.newIndex;
+          const moving=blocks.find(x=>x.id===fromId).items.splice(fromIdx,1)[0];
+          blocks.find(x=>x.id===toId).items.splice(toIdx,0,moving);
+          renderBlocks();
+        }
+      });
+    });
+
+    // 新增：整個「訓練區塊」拖曳排序
+    new Sortable(mount, {
+      animation: 150,
+      handle: '.block-h',
+      draggable: '.block',
+      onEnd: (evt)=>{
+        const oldIndex = evt.oldIndex;
+        const newIndex = evt.newIndex;
+        if(oldIndex === newIndex) return;
+        const moved = blocks.splice(oldIndex,1)[0];
+        blocks.splice(newIndex,0,moved);
+        renderBlocks();
+      }
+    });
+  }
+
+  // Helpers
+  function escapeHTML(s){ return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+  function formatIntensity(i){
+    if(!i || i.value==='' || i.value==null || i.value<=0) return '';
+    const v = i.value;
+    if(i.type==='weight'){ return `${v}${i.unit ? (' ' + i.unit) : ''}`; }
+    if(i.type==='time'){ return `${i.unit==='min' ? v+'分' : v+'秒'}`; }
+    if(i.type==='distance'){ return `${v}${i.unit||'m'}`; }
+    if(i.type==='rm'){ return `${v}${i.unit||'rm'}`; }
+    return String(v);
+  }
+  function formatVolume(vl){
+    if(!vl || vl.value==null || vl.value<=0) return '';
+    if(vl.type==='reps') return `${vl.value} rep`;
+    if(vl.type==='time') return `${vl.value}秒`;
+    return String(vl.value);
+  }
+  function formatForDisplay(it){
+    const parts = [];
+    const a = formatIntensity(it.intensity); if(a) parts.push(a);
+    const b = formatVolume(it.volume); if(b) parts.push(b);
+    if(it.sets>1) parts.push(`${it.sets}組`);
+    return parts.length? parts.join('｜') : '（未設定）';
+  }
+
+  function openItemEditor(blockId, uidKey){
+    const b = blocks.find(x=>x.id===blockId); if(!b) return;
+    const it = b.items.find(i=>i.uid===uidKey); if(!it) return;
+    const overlay = document.createElement('div'); overlay.className='overlay';
+    const modal = document.createElement('div'); modal.className='modal';
+    modal.innerHTML = `
+      <div class="modal-h">
+        <div style="font-weight:700">編輯：${it.name}</div>
+        <div class="flex">
+          <button id="save" class="btn ok">儲存</button>
+          <button id="cancel" class="btn gray">取消</button>
+        </div>
+      </div>
+      <div class="modal-b">
+        <div class="tiny">訓練強度</div>
+        <div class="grid" style="grid-template-columns:1fr 1fr 1fr 1fr">
+          <select id="iType" class="select">
+            <option value="">（不設定）</option>
+            <option value="weight">重量</option>
+            <option value="time">時間</option>
+            <option value="distance">距離</option>
+            <option value="rm">RM</option>
+          </select>
+          <input id="iVal" class="input" type="number" min="0" placeholder="數值（可空白）" value="${it.intensity?.value ?? ''}">
+          <select id="iUnit" class="select">
+            <option value="">（無單位）</option>
+            <option>kg</option><option>lb</option><option>sec</option><option>min</option><option>m</option><option>km</option><option>rm</option>
+          </select>
+          <div></div>
+        </div>
+
+        <div class="tiny" style="margin-top:8px">訓練量</div>
+        <div class="grid" style="grid-template-columns:1fr 1fr">
+          <select id="vType" class="select"><option value="reps">次數</option><option value="time">時間</option></select>
+          <input id="vVal" class="input" type="number" min="0" value="${it.volume?.value ?? 0}">
+        </div>
+
+        <div class="tiny" style="margin-top:8px">組數</div>
+        <input id="sVal" class="input" type="number" min="0" value="${it.sets ?? 0}">
+
+        <div class="tiny" style="margin-top:8px">備註</div>
+        <textarea id="noteVal" class="input" rows="3" placeholder="此動作的備註（選填）">${escapeHTML(it.notes||'')}</textarea>
+      </div>
+    `;
+    overlay.appendChild(modal); document.body.appendChild(overlay);
+    modal.querySelector('#iType').value = it.intensity?.type || '';
+    modal.querySelector('#iUnit').value = it.intensity?.unit || '';
+    modal.querySelector('#vType').value = it.volume?.type || 'reps';
+
+    modal.querySelector('#save').onclick = ()=>{
+      const t = modal.querySelector('#iType').value;
+      const valRaw = modal.querySelector('#iVal').value;
+      const u = modal.querySelector('#iUnit').value;
+      const vT = modal.querySelector('#vType').value;
+      let vV = Math.max(0, Number(modal.querySelector('#vVal').value||0));
+      let sV = Math.max(0, Number(modal.querySelector('#sVal').value||0));
+      const note = (modal.querySelector('#noteVal').value||'').trim();
+      const intensity = t ? { type:t, value: (valRaw===''? '' : Math.max(0, Number(valRaw))), unit:u } : { type:'', value:'', unit:'' };
+      updateItem(blockId, uidKey, { intensity, volume:{ type:vT, value:vV }, sets:sV, notes:note });
+      renderBlocks(); document.body.removeChild(overlay);
+    };
+    modal.querySelector('#cancel').onclick = ()=> document.body.removeChild(overlay);
+  }
+
+  // ===== Block Quick Templates (save current block) =====
+  function loadBlockTemplates(){ return loadJSON(BLOCK_TMPL_KEY, []); }
+  function saveBlockTemplates(arr){ saveJSON(BLOCK_TMPL_KEY, arr); refreshBlockTmplList(); }
+
+  function saveCurrentBlockAsTemplate(){
+    const b = getCurrentBlock(); if(!b) return alert('尚無區塊可儲存');
+    const name = prompt('輸入模板名稱', b.name) || ''; if(!name.trim()) return;
+    const tmpl = { id: uid(), name, items: b.items.map(it=>({ name:it.name, intensity:it.intensity, volume:it.volume, sets:it.sets, notes:it.notes||'' })) };
+    let arr = loadBlockTemplates();
+    arr.push(tmpl); saveBlockTemplates(arr);
+    alert('已儲存區塊模板：' + name);
+  }
+
+  function applyBlockTemplateToNewBlock(id){
+    const arr = loadBlockTemplates();
+    const t = arr.find(x=>x.id===id || x.name===id); if(!t) return;
+    const nb = { id: uid(), name: t.name, defaultSets: 3, items: t.items.map(it=>({ uid:uid(), name:it.name, intensity:{...it.intensity}, volume:{...it.volume}, sets:it.sets, notes:it.notes||'' })) };
+    blocks.push(nb); activeBlockId = nb.id; renderBlocks();
+  }
+  function deleteBlockTemplate(id){
+    let arr = loadBlockTemplates().filter(x=>x.id!==id);
+    saveBlockTemplates(arr);
+  }
+
+  function openManageBlockTemplates(){
+    const arr = loadBlockTemplates();
+    const overlay = document.createElement('div'); overlay.className='overlay';
+    const modal = document.createElement('div'); modal.className='modal';
+    modal.innerHTML = `
+      <div class="modal-h">
+        <div style="font-weight:700">管理區塊模板（拖曳排序）</div>
+        <div class="flex">
+          <button id="save" class="btn ok">儲存</button>
+          <button id="cancel" class="btn gray">關閉</button>
+        </div>
+      </div>
+      <div class="modal-b">
+        <div id="list" class="grid" style="gap:8px"></div>
+        <div class="hint">提示：拖曳以調整顯示順序。點擊模板名稱可改名；右側可刪除。</div>
+      </div>
+    `;
+    overlay.appendChild(modal); document.body.appendChild(overlay);
+
+    const list = modal.querySelector('#list');
+    arr.forEach(t=>{
+      const row = document.createElement('div');
+      row.className='row-slim'; row.dataset.id = t.id;
+      row.innerHTML = `
+        <div class="drag">☰ ${t.name}</div>
+        <div class="tiny">包含 ${t.items.length} 個動作</div>
+        <div class="right">
+          <button class="btn sm muted" data-act="rename">改名</button>
+          <button class="btn sm link" data-act="delete">刪除</button>
+        </div>
+        <div></div>
+      `;
+      row.querySelector('[data-act="rename"]').onclick = ()=>{
+        const nn = prompt('重新命名', t.name) || t.name;
+        t.name = nn; row.children[0].textContent = '☰ ' + nn;
+      };
+      row.querySelector('[data-act="delete"]').onclick = ()=>{
+        const i = arr.indexOf(t); if(i>=0) { arr.splice(i,1); row.remove(); }
+      };
+      list.appendChild(row);
+    });
+
+    new Sortable(list, { animation:150, handle:'.drag' });
+
+    modal.querySelector('#save').onclick = ()=>{ saveBlockTemplates(arr); document.body.removeChild(overlay); };
+    modal.querySelector('#cancel').onclick = ()=> document.body.removeChild(overlay);
+  }
+
+  function refreshBlockTmplList(){
+    const sel = $('#blockTmplList'); sel.innerHTML='';
+    loadBlockTemplates().forEach(t=>{
+      const o=document.createElement('option'); o.value=t.id; o.textContent=t.name; sel.appendChild(o);
+    });
+  }
+
+  $('#btnSaveBlockTmpl').onclick = saveCurrentBlockAsTemplate;
+  $('#btnManageBlockTmpl').onclick = openManageBlockTemplates;
+  $('#btnLoadBlockTmpl').onclick = ()=>{ const id=$('#blockTmplList').value; if(id) applyBlockTemplateToNewBlock(id); };
+  $('#btnDeleteBlockTmpl').onclick = ()=>{ const id=$('#blockTmplList').value; if(!id) return; if(confirm('刪除所選區塊模板？')){ deleteBlockTemplate(id); } };
+  $('#blockTmplList').ondblclick = ()=>{ const id=$('#blockTmplList').value; if(id) applyBlockTemplateToNewBlock(id); };
+
+  // ===== Plan Templates (save whole plan) =====
+  function loadPlanTemplates(){ return loadJSON(PLAN_TMPL_KEY, []); }
+  function savePlanTemplates(arr){ saveJSON(PLAN_TMPL_KEY, arr); refreshPlanTmplList(); }
+
+  function saveCurrentPlanAsTemplate(){
+    const name = prompt('輸入課表模板名稱', $('#programTitle').value || '我的模板') || '';
+    if(!name.trim()) return;
+    const snapshot = {
+      id: uid(), name,
+      programTitle: $('#programTitle').value || '',
+      clientName: $('#clientName').value || '',
+      programDate: $('#programDate').value || '',
+      notes: ($('#globalNotes').value||''),
+      blocks: blocks.map(b=>({ name:b.name, defaultSets:b.defaultSets, items: b.items.map(it=>({ name:it.name, intensity:it.intensity, volume:it.volume, sets:it.sets, notes:it.notes||'' })) }))
+    };
+    const arr = loadPlanTemplates(); arr.push(snapshot); savePlanTemplates(arr);
+    alert('已儲存課表模板：' + name);
+  }
+
+  function applyPlanTemplate(id){
+    const t = loadPlanTemplates().find(x=>x.id===id || x.name===id); if(!t) return;
+    $('#programTitle').value = t.programTitle||'';
+    $('#clientName').value  = t.clientName||'';
+    $('#programDate').value = t.programDate||new Date().toISOString().slice(0,10);
+    $('#globalNotes').value = t.notes||'';
+    blocks = (t.blocks||[]).map(src=>({ id:uid(), name:src.name, defaultSets:src.defaultSets, items:(src.items||[]).map(it=>({ uid:uid(), name:it.name, intensity:{...it.intensity}, volume:{...it.volume}, sets:it.sets, notes:it.notes||'' })) }));
+    activeBlockId = blocks[0]?.id || (blocks[0]={id:uid(),name:'Block A',items:[],defaultSets:3}).id;
+    renderMeta(); renderBlocks();
+  }
+
+  function deletePlanTemplate(id){
+    savePlanTemplates(loadPlanTemplates().filter(x=>x.id!==id));
+  }
+
+  function refreshPlanTmplList(){
+    const sel = $('#planTmplList'); sel.innerHTML='';
+    loadPlanTemplates().forEach(t=>{
+      const o=document.createElement('option'); o.value=t.id; o.textContent=t.name; sel.appendChild(o);
+    });
+  }
+
+  $('#btnSavePlanTmpl').onclick = saveCurrentPlanAsTemplate;
+  $('#btnLoadPlanTmpl').onclick = ()=>{ const id=$('#planTmplList').value; if(id) applyPlanTemplate(id); };
+  $('#btnDeletePlanTmpl').onclick = ()=>{ const id=$('#planTmplList').value; if(!id) return; if(confirm('刪除此課表模板？')) deletePlanTemplate(id); };
+
+  // ===== Library Import / Export (CSV) =====
+  function toCSVValue(s){ if(s==null) s=''; s=String(s); if(s.includes('"')||s.includes(',')||s.includes('\n')) s='"'+s.replace(/"/g,'""')+'"'; return s; }
+  function fromCSVLine(line){
+    const out=[]; let cur=''; let inQ=false;
+    for(let i=0;i<line.length;i++){
+      const ch=line[i];
+      if(inQ){
+        if(ch==='"'){ if(line[i+1]==='"'){ cur+='"'; i++; } else { inQ=false; } }
+        else cur+=ch;
+      }else{
+        if(ch===','){ out.push(cur); cur=''; }
+        else if(ch==='"'){ inQ=true; }
+        else cur+=ch;
+      }
+    }
+    out.push(cur);
+    return out;
+  }
+
+  function openLibraryIO(){
+    const overlay = document.createElement('div'); overlay.className='overlay';
+    const modal = document.createElement('div'); modal.className='modal';
+    modal.innerHTML = `
+      <div class="modal-h">
+        <div style="font-weight:700">動作庫：匯入 / 匯出（CSV）</div>
+        <div class="flex">
+          <button id="close" class="btn gray">關閉</button>
+        </div>
+      </div>
+      <div class="modal-b">
+        <div class="grid" style="grid-template-columns:1fr 1fr;gap:16px">
+          <div class="card p-16">
+            <strong>匯出</strong>
+            <p class="tiny">將目前動作庫下載為 CSV 檔。</p>
+            <button id="exportLib" class="btn ok">下載 CSV</button>
+          </div>
+          <div class="card p-16">
+            <strong>匯入</strong>
+            <p class="tiny">選擇 CSV 檔（格式同範本）。匯入會覆蓋目前動作庫。</p>
+            <input id="importFile" type="file" accept=".csv,text/csv" class="input">
+            <div class="flex right" style="margin-top:8px"><button id="importBtn" class="btn warn">匯入</button></div>
+          </div>
+        </div>
+        <div class="hr"></div>
+        <div class="card p-16">
+          <strong>範本與說明</strong>
+          <p class="tiny">CSV 欄位（含表頭）：<code>name,category,intensity_type,intensity_value,intensity_unit,volume_type,volume_value,default_sets</code>。數值留空代表不設定。</p>
+          <button id="downloadSample" class="btn muted">下載範本 CSV</button>
+          <pre class="tiny" style="white-space:pre-wrap;background:#f8fafc;border:1px solid var(--bd);padding:8px;border-radius:12px;margin-top:8px">
+name,category,intensity_type,intensity_value,intensity_unit,volume_type,volume_value,default_sets
+Back Squat,Strength,weight,60,kg,reps,5,5
+Plank,Core,time,30,sec,time,30,3</pre>
+        </div>
+      </div>
+    `;
+    overlay.appendChild(modal); document.body.appendChild(overlay);
+
+    modal.querySelector('#close').onclick = ()=> document.body.removeChild(overlay);
+    modal.querySelector('#exportLib').onclick = ()=>{
+      const header = ['name','category','intensity_type','intensity_value','intensity_unit','volume_type','volume_value','default_sets'];
+      const rows = library.map(x=>[
+        x.name||'',
+        x.category||'',
+        (x.intensity?.type)||'',
+        (x.intensity?.value)===''||(x.intensity?.value)==null ? '' : x.intensity.value,
+        (x.intensity?.unit)||'',
+        (x.volume?.type)||'reps',
+        (x.volume?.value)||0,
+        (typeof x.defaultSets==='number'?x.defaultSets:0)
+      ]);
+      const csv = [header, ...rows].map(r=>r.map(toCSVValue).join(',')).join('\n');
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='exercise_library.csv'; a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+    };
+    modal.querySelector('#importBtn').onclick = ()=>{
+      const file = modal.querySelector('#importFile').files[0];
+      if(!file) { alert('請先選擇 CSV 檔'); return; }
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        try{
+          const text = reader.result.replace(/\r\n/g,'\n');
+          const lines = text.split('\n').filter(l=>l.trim().length>0);
+          if(lines.length<2) throw new Error('內容不足');
+          const header = fromCSVLine(lines[0]).map(h=>h.trim());
+          const idx = (name)=> header.indexOf(name);
+          const need = ['name','category','intensity_type','intensity_value','intensity_unit','volume_type','volume_value','default_sets'];
+          if(need.some(k=>idx(k)<0)) throw new Error('缺少必要表頭');
+          const cleaned = lines.slice(1).map(line=>{
+            const cols = fromCSVLine(line);
+            const g = k => cols[idx(k)] ?? '';
+            const name = (g('name')||'').trim();
+            if(!name) return null;
+            const intensity_value_raw = g('intensity_value').trim();
+            const intensity = (g('intensity_type').trim())
+              ? { type:g('intensity_type').trim(), value: (intensity_value_raw==='' ? '' : Math.max(0, Number(intensity_value_raw))), unit:g('intensity_unit').trim() }
+              : { type:'', value:'', unit:'' };
+            const volume = { type: (g('volume_type').trim()==='time'?'time':'reps'), value: Math.max(0, Number(g('volume_value')||0)) };
+            const defaultSets = Math.max(0, Number(g('default_sets')||0));
+            return { id:uid(), name, category:(g('category')||'Uncategorized').trim()||'Uncategorized', intensity, volume, defaultSets };
+          }).filter(Boolean);
+          if(!cleaned.length) throw new Error('資料筆數為 0');
+          library = cleaned; saveLibrary(library); renderLibrary();
+          alert('CSV 匯入完成！');
+          document.body.removeChild(overlay);
+        }catch(err){
+          alert('匯入失敗：'+ err.message);
+        }
+      };
+      reader.readAsText(file, 'utf-8');
+    };
+    modal.querySelector('#downloadSample').onclick = ()=>{
+      const csv = [
+        'name,category,intensity_type,intensity_value,intensity_unit,volume_type,volume_value,default_sets',
+        'Back Squat,Strength,weight,60,kg,reps,5,5',
+        'Plank,Core,time,30,sec,time,30,3'
+      ].join('\n');
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='exercise_library_sample.csv'; a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+    };
+  }
+  $('#btnLibIO').onclick = openLibraryIO;
+
+  // ===== Export (include notes; show sets incl. block sets; copy-to-clipboard TXT) =====
+  function composeLine(it, includeSets=true, includeNotes=true){
+    const parts = [it.name];
+    const a = formatIntensity(it.intensity); if(a) parts.push(a);
+    const b = formatVolume(it.volume); if(b) parts.push(b);
+    if(includeSets && it.sets>1) parts.push(`${it.sets}組`);
+    if(includeNotes && it.notes && it.notes.trim()) parts.push(`註：${it.notes.trim()}`);
+    return parts.join('｜');
+  }
+
+  function buildTextExport(){
+    const title = $('#programTitle').value || '訓練課表';
+    const client = $('#clientName').value || '';
+    const date = $('#programDate').value || '';
+    let lines = [];
+    lines.push(`標題：${title}`);
+    lines.push(`學員：${client}`);
+    lines.push(`日期：${date}`);
+    lines.push('');
+    blocks.forEach(b=>{
+      if(!b.items || !b.items.length) return;
+      const blkSets = (b.defaultSets && b.defaultSets>0) ? `（${b.defaultSets}組）` : '';
+      lines.push(`【${b.name}】${blkSets}`);
+      b.items.forEach(it=> lines.push(' - ' + composeLine(it,true,true)));
+      lines.push('');
+    });
+    const notes = ($('#globalNotes').value||'').trim();
+    if(notes) lines.push(`備註：${notes}`);
+    return lines.join('\n');
+  }
+
+  async function exportPDF(){
+    const node = document.getElementById('printArea');
+    const temp = document.createElement('div');
+    temp.style.padding='24px'; temp.style.background='#fff'; temp.style.color='#0f172a';
+    temp.style.font='14px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto';
+    const h = document.createElement('div'); h.style.fontWeight='700'; h.style.fontSize='20px'; h.textContent = $('#programTitle').value || '訓練課表';
+    const m = document.createElement('div'); m.className='tiny'; m.textContent = `學員：${$('#clientName').value||''}　日期：${$('#programDate').value||''}`;
+    temp.append(h,m);
+    blocks.forEach(b=>{
+      if(!b.items.length) return;
+      const bh = document.createElement('div'); bh.style.margin='12px 0 6px'; bh.style.fontWeight='600';
+      const blkSets = (b.defaultSets && b.defaultSets>0) ? `（${b.defaultSets}組）` : '';
+      bh.textContent = `${b.name}${blkSets}`;
+      temp.appendChild(bh);
+      b.items.forEach(it=>{
+        const p=document.createElement('div'); p.textContent = '• ' + composeLine(it,true,true);
+        temp.appendChild(p);
+      });
+    });
+    const notes = ($('#globalNotes').value||'').trim();
+    if(notes){ const n=document.createElement('div'); n.style.marginTop='12px'; n.textContent='備註：'+notes; temp.appendChild(n); }
+    node.appendChild(temp);
+    const canvas = await html2canvas(temp, { scale:2, backgroundColor:'#ffffff' });
+    node.removeChild(temp);
+
+    const imgData = canvas.toDataURL('image/png');
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation:'p', unit:'pt', format:'a4' });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 24; const printableW = pageWidth - margin*2; const scale = printableW / canvas.width;
+    const imgW = printableW; const imgH = canvas.height * scale;
+    let y=margin;
+    if(imgH <= pageHeight - margin*2){
+      pdf.addImage(imgData, 'PNG', margin, y, imgW, imgH);
+    }else{
+      let remaining = imgH; let renderH = pageHeight - margin*2; let sY = 0;
+      const pageCanvas = document.createElement('canvas'); const ctx = pageCanvas.getContext('2d');
+      while(remaining>0){
+        pageCanvas.width = canvas.width; const sliceH = Math.min(renderH/scale, canvas.height - sY); pageCanvas.height = sliceH;
+        ctx.clearRect(0,0,pageCanvas.width,pageCanvas.height);
+        ctx.drawImage(canvas, 0, sY, canvas.width, sliceH, 0,0, canvas.width, sliceH);
+        const pageData = pageCanvas.toDataURL('image/png');
+        if(y!==margin) pdf.addPage();
+        pdf.addImage(pageData, 'PNG', margin, margin, imgW, sliceH*scale);
+        sY += sliceH; remaining -= renderH; y=0;
+      }
+    }
+    const filename = `${($('#programTitle').value||'訓練課表')}_${($('#clientName').value||'Client')}_${($('#programDate').value||'')}.pdf`;
+    pdf.save(filename);
+  }
+
+  async function exportDOCX(){
+    const { Document, Packer, Paragraph, TextRun } = window.docx;
+    const title = $('#programTitle').value || '訓練課表';
+    const client = $('#clientName').value || '';
+    const date = $('#programDate').value || '';
+    const children = [
+      new Paragraph({ children: [ new TextRun({ text: title, bold: true, size: 32 }) ] }),
+      new Paragraph({ children: [ new TextRun(`學員：${client}`) ] }),
+      new Paragraph({ children: [ new TextRun(`日期：${date}`) ] }),
+      new Paragraph({ children: [ new TextRun('') ] }),
+    ];
+    blocks.forEach(b=>{
+      if(!b.items || !b.items.length) return;
+      const blkSets = (b.defaultSets && b.defaultSets>0) ? `（${b.defaultSets}組）` : '';
+      children.push(new Paragraph({ children: [ new TextRun({ text: `【${b.name}】${blkSets}`, bold: true }) ] }));
+      b.items.forEach(it=> children.push(new Paragraph('• ' + composeLine(it,true,true))));
+      children.push(new Paragraph(''));
+    });
+    const notes = ($('#globalNotes').value||'').trim();
+    if(notes) children.push(new Paragraph({ children: [ new TextRun(`備註：${notes}`) ] }));
+    const doc = new Document({ sections: [{ properties:{}, children }] });
+    const blob = await Packer.toBlob(doc);
+    const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download = `${title}_${client||'Client'}_${date||''}.docx`;
+    a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+  }
+
+  function exportTXT(){
+    const txt = buildTextExport();
+    if(navigator.clipboard && window.isSecureContext){
+      navigator.clipboard.writeText(txt).then(()=> toast()).catch(()=> fallbackCopy(txt));
+    }else{
+      fallbackCopy(txt);
+    }
+  }
+  function fallbackCopy(text){
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly','');
+    ta.style.position='fixed'; ta.style.left='-9999px';
+    document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast();
+  }
+
+  $('#btnPDF').onclick = exportPDF;
+  $('#btnDOCX').onclick = exportDOCX;
+  $('#btnTXT').onclick = exportTXT;
+  $('#btnShare').onclick = copyShareLink;
+
+  // ===== Init =====
+  // Load from URL hash if present
+  (function(){
+    if(location.hash && location.hash.startsWith('#plan=')){
+      try{
+        const enc = location.hash.slice(6);
+        const json = fromURLSafe(enc);
+        const obj = JSON.parse(json);
+        applyPlanSnapshot(obj);
+      }catch(e){ console.warn('讀取分享連結失敗', e); }
+    }
+  })();
+
+  $('#btnManageLib').onclick = ()=> openLibraryManager(); // 打開管理器
+  $('#addBlock').onclick=addBlock;
+  $('#btnLibIO').onclick = openLibraryIO;
+  refreshBlockTmplList();
+  refreshPlanTmplList();
+  renderLibrary(); renderBlocks();
+
+  // ===== Library Manager (CRUD) =====
+  function openLibraryManager(){
+    const overlay = document.createElement('div'); overlay.className='overlay';
+    const modal = document.createElement('div'); modal.className='modal';
+    modal.innerHTML = `
+      <div class="modal-h">
+        <div style="font-weight:700">管理動作庫（新增 / 修改 / 刪除）</div>
+        <div class="flex">
+          <button id="lmReset" class="btn gray">回復預設</button>
+          <button id="lmSave" class="btn ok">儲存並關閉</button>
+          <button id="lmCancel" class="btn link">取消</button>
+        </div>
+      </div>
+      <div class="modal-b">
+        <div class="mb-8 tiny">提示：變更會永久保存至此瀏覽器的 localStorage。</div>
+        <div class="table-head-sm">
+          <div>名稱</div><div>分類</div><div>強度類型</div><div>強度值/單位</div><div>訓練量（值）</div><div>預設組數</div><div class="right">操作</div>
+        </div>
+        <div id="lmRows" class="grid" style="gap:8px"></div>
+        <hr style="margin:12px 0;border:none;border-top:1px solid var(--bd)">
+        <div class="grid" style="grid-template-columns:1.2fr 1fr .8fr 1fr 1fr .8fr auto">
+          <input id="lmNewName" class="input" placeholder="名稱">
+          <input id="lmNewCat" class="input" placeholder="分類">
+          <select id="lmNewIntType" class="select">
+            <option value="weight">重量</option><option value="time">時間</option><option value="distance">距離</option><option value="rm">RM</option>
+          </select>
+          <div class="flex">
+            <input id="lmNewIntVal" class="input" type="number" min="0" placeholder="強度值">
+            <select id="lmNewIntUnit" class="select"><option>kg</option><option>lb</option><option>sec</option><option>min</option><option>m</option><option>km</option><option>rm</option></select>
+          </div>
+          <div class="flex">
+            <select id="lmNewVolType" class="select"><option value="time">時間</option><option value="reps">次數</option></select>
+            <input id="lmNewVolVal" class="input" type="number" min="0" placeholder="訓練量值">
+          </div>
+          <input id="lmNewSets" class="input" type="number" min="0" placeholder="組數">
+          <button id="lmAdd" class="btn">+ 新增</button>
+        </div>
+      </div>
+    `;
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    let working = library.map(e=>({...e, intensity:{...e.intensity}, volume:{...e.volume}}));
+
+    function renderRows(){
+      const mount = modal.querySelector('#lmRows'); mount.innerHTML='';
+      working.forEach(ex=>{
+        const row = document.createElement('div'); row.className='row-sm';
+        row.innerHTML = `
+          <input class="input" value="${ex.name}">
+          <input class="input" value="${ex.category}">
+          <select class="select"><option value="weight">重量</option><option value="time">時間</option><option value="distance">距離</option><option value="rm">RM</option></select>
+          <div class="flex">
+            <input class="input" type="number" min="0" value="${ex.intensity?.value ?? ''}" style="flex:1" placeholder="可空白">
+            <select class="select"><option>kg</option><option>lb</option><option>sec</option><option>min</option><option>m</option><option>km</option><option>rm</option></select>
+          </div>
+          <div class="flex">
+            <select class="select"><option value="reps">次數</option><option value="time">時間</option></select>
+            <input class="input" type="number" min="0" value="${ex.volume?.value ?? 0}">
+          </div>
+          <input class="input" type="number" min="0" value="${ex.defaultSets ?? 3}">
+          <div class="right"><button class="btn link">刪除</button></div>
+        `;
+        const [nameI, catI, intTypeS, intValI, intUnitS, volTypeS, volValI, setsI, delB] = [
+          row.children[0], row.children[1],
+          row.children[2],
+          row.children[3].children[0], row.children[3].children[1],
+          row.children[4].children[0], row.children[4].children[1],
+          row.children[5],
+          row.children[6].querySelector('button')
+        ];
+        intTypeS.value = ex.intensity?.type || '';
+        intUnitS.value = ex.intensity?.unit || '';
+        volTypeS.value = ex.volume?.type || 'reps';
+        // bindings
+        nameI.oninput=()=>{ ex.name = nameI.value; };
+        catI.oninput =()=>{ ex.category = catI.value; };
+        intTypeS.onchange = ()=>{ ex.intensity.type = intTypeS.value; };
+        intValI.oninput = ()=>{ const raw=intValI.value; ex.intensity.value = (raw===''? '' : Math.max(0, Number(raw))); };
+        intUnitS.onchange = ()=>{ ex.intensity.unit = intUnitS.value; };
+        volTypeS.onchange = ()=>{ ex.volume.type = volTypeS.value; };
+        volValI.oninput = ()=>{ const v=Math.max(0, Number(volValI.value||0)); volValI.value=v; ex.volume.value=v; };
+        setsI.oninput = ()=>{ const v=Math.max(0, Number(setsI.value||0)); setsI.value=v; ex.defaultSets=v; };
+        delB.onclick = ()=>{ working = working.filter(w=>w!==ex); renderRows(); };
+        mount.appendChild(row);
+      });
+      if(working.length===0){
+        const empty=document.createElement('div'); empty.className='hint'; empty.textContent='尚無動作。請用下方「新增」。';
+        mount.appendChild(empty);
+      }
+    }
+    renderRows();
+
+    modal.querySelector('#lmReset').onclick = ()=>{
+      if(!confirm('確定回復預設動作庫？將覆蓋目前自訂內容。')) return;
+      working = DEFAULT_LIBRARY.map(e=>({...e, intensity:{...e.intensity}, volume:{...e.volume}}));
+      renderRows();
+    };
+    modal.querySelector('#lmSave').onclick = ()=>{
+      library = working;
+      saveLibrary(library);
+      renderLibrary();
+      document.body.removeChild(overlay);
+    };
+    modal.querySelector('#lmCancel').onclick = ()=> document.body.removeChild(overlay);
+    modal.querySelector('#lmAdd').onclick = ()=>{
+      const n = modal.querySelector('#lmNewName').value.trim();
+      if(!n){ alert('請輸入名稱'); return; }
+      const c = modal.querySelector('#lmNewCat').value.trim() || 'Strength';
+      const it = modal.querySelector('#lmNewIntType').value;
+      const rawIv = modal.querySelector('#lmNewIntVal').value;
+      const iu = modal.querySelector('#lmNewIntUnit').value;
+      const vt = modal.querySelector('#lmNewVolType').value;
+      let vv = Math.max(0, Number(modal.querySelector('#lmNewVolVal').value||0));
+      let sets = Math.max(0, Number(modal.querySelector('#lmNewSets').value||0));
+      const newEx = { id: uid(), name:n, category:c, intensity:{ type:it, value:(rawIv===''? '' : Math.max(0, Number(rawIv))), unit:iu }, volume:{ type:vt, value:vv }, defaultSets: sets };
+      working.push(newEx);
+      renderRows();
+      modal.querySelector('#lmNewName').value=''; modal.querySelector('#lmNewIntVal').value=''; modal.querySelector('#lmNewVolVal').value=''; modal.querySelector('#lmNewSets').value='';
+    };
+  }
+})();
+</script>
+</body>
+</html>
