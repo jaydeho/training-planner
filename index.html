@@ -163,11 +163,29 @@
   ];
 
   // PDF/Word font sizes (+2pt from previous baseline)
-  const PDF_FONT_BASE_PT = 32;   // 本文
-  const PDF_FONT_TITLE_PT = 36;  // 大標
-  const PDF_FONT_SECTION_PT = 32;// 區塊標題
-  const PDF_FONT_SMALL_PT = 28;  // 其他行
-  const DOCX_TITLE_PT = 20, DOCX_SECTION_PT = 16, DOCX_TEXT_PT = 14;
+  let PDF_FONT_BASE_PT = 32;   // 本文
+  let PDF_FONT_TITLE_PT = 36;  // 大標
+  let PDF_FONT_SECTION_PT = 32;// 區塊標題
+  let PDF_FONT_SMALL_PT = 28;  // 其他行
+  let DOCX_TITLE_PT = 20, DOCX_SECTION_PT = 16, DOCX_TEXT_PT = 14;
+  // ---- Mobile export font overrides (phone only) ----
+  try {
+    const isMobile = /Mobi|Android|iPhone|iPad|Phone/i.test(navigator.userAgent) ||
+      (window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
+    if (isMobile) {
+      // PDF: Title 20pt, Section 16pt, Meta (student/date) 16pt, Items/Notes 14pt
+      PDF_FONT_TITLE_PT = 20;
+      PDF_FONT_SECTION_PT = 16;
+      PDF_FONT_SMALL_PT = 16;
+      PDF_FONT_BASE_PT = 14;
+      // Word: Title 20pt, Section 16pt, Text 14pt
+      DOCX_TITLE_PT = 20;
+      DOCX_SECTION_PT = 16;
+      DOCX_TEXT_PT = 14;
+    }
+  } catch(e) {}
+  // -----------------------------------------------
+
 
   const $ = (s, r=document) => r.querySelector(s);
   const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
